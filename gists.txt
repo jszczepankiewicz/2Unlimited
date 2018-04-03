@@ -1,0 +1,40 @@
+public int execute(CommandLine cmdl, String command) throws RuntimeException, IOException{
+    ExecuteWatchdog watchdog = new ExecuteWatchdog(5 * 1000);
+    Executor executor = new DefaultExecutor();
+    executor.setExitValue(0);
+    executor.setWatchdog(watchdog);
+
+    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    PumpStreamHandler streamHandler = new PumpStreamHandler(outputStream);
+    executor.setStreamHandler(streamHandler);
+
+    int exitValue = executor.execute(cmdl);
+    String outcome = outputStream.toString();
+    if("unlimited".equalsIgnoreCase(outcome.trim())){
+      return Integer.MAX_VALUE;
+    }
+
+    if (outcome.isEmpty()) {
+      throw new IllegalStateException("Expected command [" + command + "] with optional args to return non empty result but finished successfully without outcome");
+    }
+
+    int result = Integer.valueOf(outcome.trim());
+    return result;
+  }
+
+and invocations
+
+public int getLimitForProcessesOfCurrentUser() throws IOException {
+    CommandLine commandLine = new CommandLine("/bin/sh");
+    commandLine.addArgument("-c");
+    commandLine.addArgument("ulimit -u", false);
+    return executor.execute(commandLine, "ulimit -u");
+    //return executor.execute(maxProcessCommand, maxProcessCommandArgs.toArray(new String[0]));
+  }
+
+  public int getLimitForFileAndSocketsOfCurrentUser() throws IOException  {
+    CommandLine commandLine = new CommandLine("/bin/sh");
+    commandLine.addArgument("-c");
+    commandLine.addArgument("ulimit -Sn", false);
+    return executor.execute(commandLine, "ulimit -Sn");
+  }
